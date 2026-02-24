@@ -63,7 +63,7 @@ body { background:#f4f6f9; }
 <div class="col-12 col-md-4">
 <label class="form-label">Selecione o Mês:</label>
 <select id="mesSelect" class="form-select" onchange="atualizar()">
-<option value="Todos" >Todos</option><option value="01/2026" >01/2026</option><option value="02/2026" selected>02/2026</option><option value="03/2026" >03/2026</option><option value="04/2026" >04/2026</option><option value="05/2026" >05/2026</option><option value="06/2026" >06/2026</option><option value="07/2026" >07/2026</option><option value="08/2026" >08/2026</option><option value="09/2026" >09/2026</option><option value="10/2026" >10/2026</option><option value="11/2026" >11/2026</option><option value="12/2026" >12/2026</option><option value="01/2027" >01/2027</option>
+<option value="Todos" >Todos</option><option value="01/2026" >01/2026</option><option value="02/2026" >02/2026</option><option value="03/2026" selected>03/2026</option><option value="04/2026" >04/2026</option><option value="05/2026" >05/2026</option><option value="06/2026" >06/2026</option><option value="07/2026" >07/2026</option><option value="08/2026" >08/2026</option><option value="09/2026" >09/2026</option><option value="10/2026" >10/2026</option><option value="11/2026" >11/2026</option><option value="12/2026" >12/2026</option><option value="01/2027" >01/2027</option>
 </select>
 </div>
 </div>
@@ -193,10 +193,12 @@ function atualizar(){
     let liquidoKeila = totalT3 - totalT4;
     let liquidoTotal = liquidoJoanildo + liquidoKeila;
     let saldoGeral = liquidoTotal - total;
+    let proventosBrutosTotal = totalT1 + totalT3;
+    let totalDescontos = totalT2Comp + totalT2Vol + totalT4;
 
     let corSaldo = saldoGeral >= 0 ? "#198754" : "#dc3545";
 
-    const coresCards = ["#6c757d","#ffc107","#0dcaf0","#6c757d","#ffc107","#ff69b4","#212529","#FF7F50","#A52A2A"];
+    const coresCards = ["#00008B","#ffc107","#0dcaf0","#6c757d","#ffc107","#ff69b4","#1565C0","#FF7F50","#A52A2A"];
 
     // Quebra de linha
     rowCards.innerHTML += `<div class="col-12"><hr></div>`;
@@ -214,7 +216,7 @@ function atualizar(){
     // ==========================
     // CARDS KEILA
     // ==========================
-    card(4,"Proventos Keila",moeda(totalT3),coresCards[3]);
+    card(4,"Proventos Keila",moeda(totalT3),coresCards[0]);
     card(4,"Descontos Keila",moeda(totalT4),coresCards[4]);
     card(4,"Proventos Líquidos Keila",moeda(liquidoKeila),coresCards[5]);
 
@@ -223,9 +225,11 @@ function atualizar(){
     // ==========================
     // TOTAIS
     // ==========================
-    card(4,"Proventos Líquidos Total",moeda(liquidoTotal),coresCards[6]);
-    card(4,"Gasto Total",moeda(total),coresCards[7]);
-    card(4,"Saldo Geral",moeda(saldoGeral),corSaldo);
+    card(2,"Proventos Brutos (Total)",moeda(proventosBrutosTotal),coresCards[0]);
+    card(2,"Total de Descontos",moeda(totalDescontos),coresCards[1]);
+    card(2,"Proventos Líquidos Total",moeda(liquidoTotal),coresCards[6]);
+    card(2,"Gasto Total",moeda(total),coresCards[7]);
+    card(2,"Saldo Geral",moeda(saldoGeral),corSaldo);
 
     Plotly.newPlot("grafico_categoria",[{
         labels:Object.keys(cat),
