@@ -1,11 +1,8 @@
 name: Atualizar Dashboard Automático
 
-
 on:
-  schedule:
-    - cron: '55 22 * * *'  # Executa às 19:55 BRT
-  workflow_dispatch:
-  
+  workflow_dispatch:  # dispara manualmente
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,7 +11,7 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v3
         with:
-          persist-credentials: false  # importante para usar token no push
+          persist-credentials: false
 
       - name: Instalar Python
         uses: actions/setup-python@v4
@@ -34,7 +31,10 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add index.html
-          # Commit apenas se houver alterações
-          git diff --cached --quiet || git commit -m "Atualização automática do dashboard"
-          # Push usando token para autenticação
-          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:main
+          # Commit e push apenas se houver alterações
+          if ! git diff --cached --quiet; then
+            git commit -m "Atualização automática do dashboard (teste)"
+            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:main
+            echo "✅ Dashboard atualizado e push realizado!"
+          else
+            echo "ℹ️ Nenhuma alteração para commitar."
