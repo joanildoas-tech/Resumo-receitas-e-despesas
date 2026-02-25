@@ -1,16 +1,16 @@
-name: Atualizar Dashboard
+name: Atualizar Dashboard Automático
 
 on:
   schedule:
-    - cron: '0 10 * * *'   # todo dia às 10h UTC (7h Brasil)
-  workflow_dispatch:       # permite rodar manualmente
+    - cron: '0 */6 * * *'  # Atualiza a cada 6 horas
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar repositório
+      - name: Checkout do repositório
         uses: actions/checkout@v3
 
       - name: Instalar Python
@@ -21,7 +21,7 @@ jobs:
       - name: Instalar dependências
         run: pip install -r requirements.txt
 
-      - name: Rodar script
+      - name: Executar script
         run: python gerar_dashboard.py
 
       - name: Commit automático
