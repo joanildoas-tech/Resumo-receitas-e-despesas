@@ -1,3 +1,4 @@
+
 import pandas as pd
 
 # ==========================
@@ -43,11 +44,6 @@ tabela2 = tabela2[tabela2['Data'].dt.year == ANO]
 tabela3 = tabela3[tabela3['Data'].dt.year == ANO]
 tabela4 = tabela4[tabela4['Data'].dt.year == ANO]
 
-t1_json = tabela1.to_json(orient="records")
-t2_json = tabela2.to_json(orient="records")
-t3_json = tabela3.to_json(orient="records")
-t4_json = tabela4.to_json(orient="records")
-
 # ==========================
 # LIMPEZA DF PRINCIPAL
 # ==========================
@@ -76,7 +72,6 @@ for col in ['Parcela', 'T. Parcelas']:
 
 meses = sorted(df['Mês'].unique(), key=lambda x: pd.to_datetime(x, format='%m/%Y'))
 mes_padrao = meses[-1] if meses else ""
-
 meses = ['Todos'] + meses
 df_json = df.to_json(orient="records")
 
@@ -89,7 +84,7 @@ html = f"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard Financeiro</title>
+<title>Dashboard Financeiro {ANO}</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
@@ -103,12 +98,12 @@ html = f"""
 {''.join([f'<option value="{m}" {"selected" if m==mes_padrao else ""}>{m}</option>' for m in meses])}
 </select>
 
-<div id="conteudo"></div>
+<div id="alerta"></div>
+<div id="grafico"></div>
 
 </div>
 
 <script>
-
 let df = {df_json};
 
 function moeda(v){{
@@ -122,24 +117,29 @@ function atualizar(){{
     let mes = document.getElementById("mesSelect").value;
     let dados = mes==="Todos" ? df : df.filter(d=>d.Mês===mes);
 
+    // total gastos
     let total = dados.reduce((a,b)=>a+Number(b.Valor),0);
-
-    document.getElementById("conteudo").innerHTML = `
+    document.getElementById("alerta").innerHTML = `
         <div class="alert alert-primary text-center">
             Total de Gastos: <strong>${{moeda(total)}}</strong>
         </div>
     `;
 
+    // categoria gastos
     let cat={{}};
     dados.forEach(d=>cat[d.Categoria]=(cat[d.Categoria]||0)+Number(d.Valor));
 
-    Plotly.newPlot("conteudo",
-    [{{labels:Object.keys(cat),values:Object.values(cat),type:'pie'}}],
+    // plot gráfico
+    Plotly.newPlot("grafico",
+    [{
+        labels: Object.keys(cat),
+        values: Object.values(cat),
+        type:'pie'
+    }],
     {{margin:{{t:30}}}});
 }}
 
 atualizar();
-
 </script>
 </body>
 </html>
