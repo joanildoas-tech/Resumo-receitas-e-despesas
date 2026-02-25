@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout do repositório
         uses: actions/checkout@v3
+        with:
+          persist-credentials: false  # importante para usar token no push
 
       - name: Instalar Python
         uses: actions/setup-python@v4
@@ -24,10 +26,14 @@ jobs:
       - name: Executar script
         run: python gerar_dashboard.py
 
-      - name: Commit automático
+      - name: Commit automático do dashboard
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add index.html
-          git commit -m "Atualização automática do dashboard" || echo "Sem alterações"
-          git push
+          # Commit apenas se houver alterações
+          git diff --cached --quiet || git commit -m "Atualização automática do dashboard"
+          # Push usando token para autenticação
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:main
