@@ -1,0 +1,33 @@
+name: Atualizar Dashboard
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # todo dia às 10h UTC (7h Brasil)
+  workflow_dispatch:       # permite rodar manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v3
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Rodar script
+        run: python gerar_dashboard.py
+
+      - name: Commit automático
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add index.html
+          git commit -m "Atualização automática do dashboard" || echo "Sem alterações"
+          git push
