@@ -115,213 +115,117 @@ body { background:#f4f6f9; }
 
 <script>
 
-let df = [];let df = [];
-let tabelaExtra = [];
+let df = [];
+let tabela1 = [];
+let tabela2 = [];
+let tabela3 = [];
+let tabela4 = [];
 
 async function carregarDados() {
 
     const url1 = "https://docs.google.com/spreadsheets/d/1JTq0hJwFfMZY5mDsFy0DuEOcOgXSK_b2WylTybB8bWk/export?format=csv";
     const url2 = "https://docs.google.com/spreadsheets/d/1JTq0hJwFfMZY5mDsFy0DuEOcOgXSK_b2WylTybB8bWk/export?format=csv&gid=918439659";
 
-    // ====== ABA PRINCIPAL ======
+    // =========================
+    // ABA PRINCIPAL (GASTOS)
+    // =========================
     const resp1 = await fetch(url1);
     const texto1 = await resp1.text();
-    df = converterCSV(texto1);
+    df = processarGastos(texto1);
 
-    // ====== ABA PROVENTOS ======
+    // =========================
+    // ABA PROVENTOS / DESCONTOS
+    // =========================
     const resp2 = await fetch(url2);
     const texto2 = await resp2.text();
-    tabelaExtra = converterCSV(texto2);
+    processarProventos(texto2);
 
     atualizar();
 }
 
-function converterCSV(texto){
-    const linhas = texto.split("\n");
-    const cabecalho = linhas[0].split(",");
+function processarGastos(texto){
+
+    const linhas = texto.split("\n").filter(l => l.trim() !== "");
+    const cab = linhas[0].split(",");
 
     return linhas.slice(1).map(linha => {
-        const valores = linha.split(",");
-        let obj = {};
-        cabecalho.forEach((col, i) => {
-            obj[col.trim()] = valores[i];
-        });
 
-        if(obj["Valor"]){
-            obj["Valor"] = parseFloat(
-                obj["Valor"]
-                    ?.replace("R$", "")
-                    ?.replace(/\./g, "")
-                    ?.replace(",", ".")
-            );
+        const col = linha.split(",");
+        let obj = {};
+
+        cab.forEach((c,i)=> obj[c.trim()] = col[i]);
+
+        // Converter valor
+        obj["Valor"] = parseFloat(
+            obj["Valor"]
+                ?.replace("R$","")
+                ?.replace(/\./g,"")
+                ?.replace(",",".")
+        ) || 0;
+
+        // Converter datas
+        if(obj["Data de pagamento"]){
+            let partes = obj["Data de pagamento"].split("/");
+            obj["Mês"] = partes[1] + "/" + partes[2];
         }
 
         return obj;
     });
 }
 
-carregarDados();
-    
+function processarProventos(texto){
+
+    const linhas = texto.split("\n").filter(l => l.trim() !== "");
+
+    // Ignorar primeira linha (header=1 do Python)
+    const dados = linhas.slice(1).map(l => l.split(","));
+
+    function limparTabela(inicio){
+        return dados.map(l => {
+
+            let data = l[inicio];
+            let tipo = l[inicio+1];
+            let valor = l[inicio+2];
+
+            if(!data || !valor) return null;
+
+            valor = parseFloat(
+                valor
+                    ?.replace("R$","")
+                    ?.replace(/\./g,"")
+                    ?.replace(",",".")
+            ) || 0;
+
+            let partes = data.split("/");
+            let mes = partes[1] + "/" + partes[2];
+
+            return {
+                Data: data,
+                Tipo: tipo,
+                Valor: valor,
+                Mês: mes
+            };
+
+        }).filter(x => x !== null);
+    }
+
+    tabela1 = limparTabela(0);   // Proventos Joanildo
+    tabela2 = limparTabela(5);   // Descontos Joanildo
+    tabela3 = limparTabela(10);  // Proventos Keila
+    tabela4 = limparTabela(15);  // Descontos Keila
+}
+
 function moeda(v){
-    return Number(v).toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+    return Number(v).toLocaleString('pt-BR',{
+        style:'currency',
+        currency:'BRL'
     });
 }
 
-function atualizar(){
-    let mes = document.getElementById("mesSelect").value;
-    let dados = mes==="Todos" ? df : df.filter(d=>d.Mês===mes);
-
-    let total = dados.reduce((a,b)=>a+Number(b.Valor),0);
-
-    let cat={}, pag={}, mensal={};
-    dados.forEach(d=>cat[d.Categoria]=(cat[d.Categoria]||0)+Number(d.Valor));
-    dados.forEach(d=>pag[d["Forma de pagamento"]]=(pag[d["Forma de pagamento"]]||0)+Number(d.Valor));
-    df.forEach(d=>mensal[d.Mês]=(mensal[d.Mês]||0)+Number(d.Valor));
-
-    let mesesOrdenados = Object.keys(mensal).sort((a,b)=>{
-        let da = a.split('/');
-        let db = b.split('/');
-        return new Date(da[1], da[0]-1) - new Date(db[1], db[0]-1);
-    });
-
-    let valoresOrdenados = mesesOrdenados.map(m=>mensal[m]);
-
-    let rowCards=document.getElementById("rowCards");
-    rowCards.innerHTML="";
-
-    function card(col, titulo, valor, cor){
-        let style = cor.startsWith("#") ? `style="background-color:${cor}; color:white;"` : `class="bg-${cor} text-white"`;
-        rowCards.innerHTML += `
-        <div class="col-12 col-md-${col}">
-            <div class="card card-custom" ${style}>
-                <h6>${titulo}</h6>
-                <h4>${valor}</h4>
-            </div>
-        </div>`;
-    }
-
-    document.getElementById("rowCards").innerHTML = "";
-    document.getElementById("rowMensal").style.display = (mes==="Todos") ? "block" : "none";
-
-    // Filtrar tabelas pelo mês
-    let t1 = mes==="Todos" ? tabela1 : tabela1.filter(d=>d.Mês===mes);
-    let t2 = mes==="Todos" ? tabela2 : tabela2.filter(d=>d.Mês===mes);
-    let t3 = mes==="Todos" ? tabela3 : tabela3.filter(d=>d.Mês===mes);
-    let t4 = mes==="Todos" ? tabela4 : tabela4.filter(d=>d.Mês===mes);
-
-    // Descontos voluntários: todos os empréstimos + outros voluntários explícitos
-    const outrosVoluntarios = [
-        "02. FUNPRESP",
-        "Descontos Joanildo - descontos voluntários"
-    ];
-
-    let t2Voluntario = t2.filter(d => d.Tipo.includes("EMPRÉSTIMO") || outrosVoluntarios.includes(d.Tipo));
-
-    // Compulsórios: tudo que não é voluntário
-    let t2Compulsorio = t2.filter(d => !(d.Tipo.includes("EMPRÉSTIMO") || outrosVoluntarios.includes(d.Tipo)));
-
-    let totalT1 = t1.reduce((a,b)=>a+Number(b.Valor),0);
-    let totalT2Comp = t2Compulsorio.reduce((a,b)=>a+Number(b.Valor),0);
-    let totalT2Vol = t2Voluntario.reduce((a,b)=>a+Number(b.Valor),0);
-    let liquidoJoanildo = totalT1 - totalT2Comp - totalT2Vol;
-
-    let totalT3 = t3.reduce((a,b)=>a+Number(b.Valor),0);
-    let totalT4 = t4.reduce((a,b)=>a+Number(b.Valor),0);
-    let liquidoKeila = totalT3 - totalT4;
-    let liquidoTotal = liquidoJoanildo + liquidoKeila;
-    let saldoGeral = liquidoTotal - total;
-    let proventosBrutosTotal = totalT1 + totalT3;
-    let totalDescontos = totalT2Comp + totalT2Vol + totalT4;
-
-    let corSaldo = saldoGeral >= 0 ? "#198754" : "#dc3545";
-
-    const coresCards = ["#00008B","#ffc107","#0dcaf0","#6c757d","#ffc107","#ff69b4","#1565C0","#FF7F50","#A52A2A"];
-
-    // Quebra de linha
-    rowCards.innerHTML += `<div class="col-12"><hr></div>`;
-
-    // ==========================
-    // CARDS JOANILDO
-    // ==========================
-    card(3,"Proventos Joanildo",moeda(totalT1),coresCards[0]);
-    card(3,"Descontos Compulsórios",moeda(totalT2Comp),coresCards[1]);
-    card(3,"Descontos Voluntários",moeda(totalT2Vol),coresCards[8]);
-    card(3,"Proventos Líquidos Joanildo",moeda(liquidoJoanildo),coresCards[2]);
-
-    
-
-    // ==========================
-    // CARDS KEILA
-    // ==========================
-    card(4,"Proventos Keila",moeda(totalT3),coresCards[0]);
-    card(4,"Descontos Keila",moeda(totalT4),coresCards[4]);
-    card(4,"Proventos Líquidos Keila",moeda(liquidoKeila),coresCards[5]);
-
-    rowCards.innerHTML += `<div class="col-12"><hr></div>`;
-
-    // ==========================
-    // TOTAIS
-    // ==========================
-    card(2,"Proventos Brutos (Total)",moeda(proventosBrutosTotal),coresCards[0]);
-    card(2,"Total de Descontos",moeda(totalDescontos),coresCards[1]);
-    card(2,"Proventos Líquidos Total",moeda(liquidoTotal),coresCards[6]);
-    card(2,"Gasto Total",moeda(total),coresCards[7]);
-    card(2,"Saldo Geral",moeda(saldoGeral),corSaldo);
-
-    Plotly.newPlot("grafico_categoria",[{
-        labels:Object.keys(cat),
-        values:Object.values(cat),
-        type:'pie',
-        direction: 'clockwise'    
-    }],{margin:{t:20,l:20,r:20,b:20}},{responsive:true});
-
-    if(mes==="Todos"){
-        Plotly.newPlot("grafico_mensal",
-        [{x:mesesOrdenados,y:valoresOrdenados,type:'bar',text: valoresOrdenados.map(v => moeda(v)),textposition:'outside'}],
-        {title:"Gastos Mensais",margin:{t:50,l:40,r:20,b:80},xaxis:{tickangle:-45}},
-        {responsive:true});
-    }
-
-    function montarTabela(id,data){
-        if(!data.length) return;
-        let colunasCentralizadas = ["Data da compra","Data de pagamento","Valor","Parcela","T. Parcelas"];
-        let html="<thead><tr>";
-        Object.keys(data[0]).forEach(c=>{
-            if(c!=="Mês"){
-                html += colunasCentralizadas.includes(c)?'<th class="text-center">'+c+'</th>' : "<th>"+c+"</th>";
-            }
-        });
-        html+="</tr></thead><tbody>";
-        data.forEach(r=>{
-            html+="<tr>";
-            Object.keys(r).forEach(c=>{
-                if(c!=="Mês"){
-                    let v = r[c]===null?"":(c==="Valor"?moeda(r[c]):r[c]);
-                    html += colunasCentralizadas.includes(c)?'<td class="text-center">'+v+'</td>' : "<td>"+v+"</td>";
-                }
-            });
-            html+="</tr>";
-        });
-        html+="</tbody>";
-        document.getElementById(id).innerHTML=html;
-    }
-
-    montarTabela("tabela_transacoes",dados);
-
-    let catArray=Object.keys(cat).map(k=>({"Categoria":k,"Valor":cat[k]})).sort((a,b)=>b.Valor-a.Valor);
-    montarTabela("tabela_categoria",catArray);
-
-    let pagArray=Object.keys(pag).map(k=>({"Forma de pagamento":k,"Valor":pag[k]})).sort((a,b)=>b.Valor-a.Valor);
-    montarTabela("tabela_pagamento",pagArray);
-}
-
-
+carregarDados();
 
 </script>
 </body>
 </html>
+
 
