@@ -4,17 +4,19 @@ import pandas as pd
 # 1. LER GOOGLE SHEETS
 # ==========================
 url = "https://docs.google.com/spreadsheets/d/1JTq0hJwFfMZY5mDsFy0DuEOcOgXSK_b2WylTybB8bWk/export?format=csv"
-url2 = 'https://docs.google.com/spreadsheets/d/1JTq0hJwFfMZY5mDsFy0DuEOcOgXSK_b2WylTybB8bWk/export?format=csv&gid=918439659'
+url2 = "https://docs.google.com/spreadsheets/d/1JTq0hJwFfMZY5mDsFy0DuEOcOgXSK_b2WylTybB8bWk/export?format=csv&gid=918439659"
+
 df = pd.read_csv(url)
 df2 = pd.read_csv(url2, header=1)
 
-# Tabelas específicas (colunas)
-tabela1 = df2.iloc[:, 0:3]   # Proventos Joanildo
-tabela2 = df2.iloc[:, 5:8]   # Descontos Joanildo
-tabela3 = df2.iloc[:, 10:13] # Proventos Keila
-tabela4 = df2.iloc[:, 15:18] # Descontos Keila
+# ==========================
+# TABELAS ESPECÍFICAS
+# ==========================
+tabela1 = df2.iloc[:, 0:3]
+tabela2 = df2.iloc[:, 5:8]
+tabela3 = df2.iloc[:, 10:13]
+tabela4 = df2.iloc[:, 15:18]
 
-# Função para limpar tabelas
 def limpar_tabela(tabela):
     tabela = tabela.copy()
     tabela.columns = ['Data', 'Tipo', 'Valor']
@@ -34,13 +36,12 @@ tabela2 = limpar_tabela(tabela2)
 tabela3 = limpar_tabela(tabela3)
 tabela4 = limpar_tabela(tabela4)
 
-# ==========================
-# FILTRAR TABELAS PARA 2026
-# ==========================
-tabela1 = tabela1[tabela1['Data'].dt.year == 2026]
-tabela2 = tabela2[tabela2['Data'].dt.year == 2026]
-tabela3 = tabela3[tabela3['Data'].dt.year == 2026]
-tabela4 = tabela4[tabela4['Data'].dt.year == 2026]
+# FILTRAR ANO
+ANO = 2026
+tabela1 = tabela1[tabela1['Data'].dt.year == ANO]
+tabela2 = tabela2[tabela2['Data'].dt.year == ANO]
+tabela3 = tabela3[tabela3['Data'].dt.year == ANO]
+tabela4 = tabela4[tabela4['Data'].dt.year == ANO]
 
 t1_json = tabela1.to_json(orient="records")
 t2_json = tabela2.to_json(orient="records")
@@ -48,7 +49,7 @@ t3_json = tabela3.to_json(orient="records")
 t4_json = tabela4.to_json(orient="records")
 
 # ==========================
-# LIMPEZA DO DF PRINCIPAL
+# LIMPEZA DF PRINCIPAL
 # ==========================
 if 'Ano' in df.columns:
     df = df.drop(columns=['Ano'])
@@ -62,10 +63,10 @@ df['Valor'] = (
 
 df['Data da compra'] = pd.to_datetime(df['Data da compra'], dayfirst=True)
 df['Data de pagamento'] = pd.to_datetime(df['Data de pagamento'], dayfirst=True)
-df = df[df['Data de pagamento'].dt.year == 2026]
+
+df = df[df['Data de pagamento'].dt.year == ANO]
 df['Mês'] = df['Data de pagamento'].dt.strftime('%m/%Y')
 
-# Formato brasileiro
 df['Data da compra'] = df['Data da compra'].dt.strftime('%d/%m/%Y')
 df['Data de pagamento'] = df['Data de pagamento'].dt.strftime('%d/%m/%Y')
 
@@ -73,19 +74,10 @@ for col in ['Parcela', 'T. Parcelas']:
     if col in df.columns:
         df[col] = df[col].fillna('')
 
-# Ordenar meses corretamente
 meses = sorted(df['Mês'].unique(), key=lambda x: pd.to_datetime(x, format='%m/%Y'))
-mes_atual = pd.Timestamp.today().strftime('%m/%Y')
-# Data de hoje
-hoje = pd.Timestamp.today()
+mes_padrao = meses[-1] if meses else ""
 
-# Próximo mês
-prox_mes = (hoje + pd.DateOffset(months=1)).strftime('%m/%Y')
-
-# Definir mês padrão
-mes_padrao = prox_mes if prox_mes in meses else meses[-1]
 meses = ['Todos'] + meses
-
 df_json = df.to_json(orient="records")
 
 # ==========================
@@ -97,129 +89,32 @@ html = f"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard de Gastos</title>
-
+<title>Dashboard Financeiro</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
-<style>
-body {{ background:#f4f6f9; }}
-
-.card-custom {{
-    text-align:center;
-    padding:10px 15px;
-    border-radius:15px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.08);
-}}
-
-.bg-orange {{ background-color: #FF7F50 !important; color: white !important; }}
-
-.table-container {{
-    border-radius:15px;
-    background:white;
-    padding:15px;
-    width:100%;
-}}
-
-.table-scroll {{ max-height:460px; overflow-y:auto; }}
-
-.table thead th {{
-    position: sticky;
-    top: 0;
-    background-color:#D9EEF9 !important;
-    color:#2C3E50 !important;
-    z-index: 2;
-}}
-
-.grafico-box {{
-    background:white;
-    border-radius:20px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.08);
-    padding:15px;
-    width:100%;
-}}
-
-.container-custom {{
-    max-width: 1700px;
-    padding-left: 15px;
-    padding-right: 15px;
-    margin: 0 auto;
-}}
-</style>
 </head>
-<body>
 
-<div class="container-custom py-3">
-<h1 class="text-center mb-4">Proventos e Gastos Pessoais</h1>
+<body class="bg-light">
 
-<div class="row mb-4">
-<div class="col-12 col-md-4">
-<label class="form-label">Selecione o Mês:</label>
-<select id="mesSelect" class="form-select" onchange="atualizar()">
+<div class="container py-4">
+<h2 class="text-center mb-4">Dashboard Financeiro {ANO}</h2>
+
+<select id="mesSelect" class="form-select mb-4" onchange="atualizar()">
 {''.join([f'<option value="{m}" {"selected" if m==mes_padrao else ""}>{m}</option>' for m in meses])}
 </select>
-</div>
-</div>
 
-<div class="row g-3 mb-4 justify-content-center" id="rowCards"></div>
-
-<div class="row g-3 mb-4">
-<div class="col-12 col-md-6">
-<div class="grafico-box">
-<h5 class="text-center mb-3">Gastos por Categoria</h5>
-<div id="grafico_categoria"></div>
-</div>
-</div>
-
-<div class="col-12 col-md-6">
-<div class="table-container">
-<h5 class="text-center mb-3">Transações</h5>
-<div class="table-scroll">
-<table class="table table-striped table-hover" id="tabela_transacoes"></table>
-</div>
-</div>
-</div>
-
-<div class="row g-3 mb-4">
-<div class="col-12 col-md-6">
-<div class="table-container">
-<h5 class="text-center mb-3">Gastos por categoria</h5>
-<table class="table table-striped" id="tabela_categoria"></table>
-</div>
-</div>
-
-<div class="col-12 col-md-6">
-<div class="table-container">
-<h5 class="text-center mb-3">Gastos por forma de pagamento</h5>
-<table class="table table-striped" id="tabela_pagamento"></table>
-</div>
-</div>
-</div>
-
-<div class="row g-3 mb-4" id="rowMensal" style="display:none;">
-<div class="col-12">
-<div class="grafico-box">
-<div id="grafico_mensal"></div>
-</div>
-</div>
-</div>
+<div id="conteudo"></div>
 
 </div>
 
 <script>
 
 let df = {df_json};
-let tabela1 = {t1_json};
-let tabela2 = {t2_json};
-let tabela3 = {t3_json};
-let tabela4 = {t4_json};
 
 function moeda(v){{
     return Number(v).toLocaleString('pt-BR', {{
         style: 'currency',
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        currency: 'BRL'
     }});
 }}
 
@@ -229,146 +124,18 @@ function atualizar(){{
 
     let total = dados.reduce((a,b)=>a+Number(b.Valor),0);
 
-    let cat={{}}, pag={{}}, mensal={{}};
+    document.getElementById("conteudo").innerHTML = `
+        <div class="alert alert-primary text-center">
+            Total de Gastos: <strong>${{moeda(total)}}</strong>
+        </div>
+    `;
+
+    let cat={{}};
     dados.forEach(d=>cat[d.Categoria]=(cat[d.Categoria]||0)+Number(d.Valor));
-    dados.forEach(d=>pag[d["Forma de pagamento"]]=(pag[d["Forma de pagamento"]]||0)+Number(d.Valor));
-    df.forEach(d=>mensal[d.Mês]=(mensal[d.Mês]||0)+Number(d.Valor));
 
-    let mesesOrdenados = Object.keys(mensal).sort((a,b)=>{{
-        let da = a.split('/');
-        let db = b.split('/');
-        return new Date(da[1], da[0]-1) - new Date(db[1], db[0]-1);
-    }});
-
-    let valoresOrdenados = mesesOrdenados.map(m=>mensal[m]);
-
-    let rowCards=document.getElementById("rowCards");
-    rowCards.innerHTML="";
-
-    function card(col, titulo, valor, cor){{
-        let style = cor.startsWith("#") ? `style="background-color:${{cor}}; color:white;"` : `class="bg-${{cor}} text-white"`;
-        rowCards.innerHTML += `
-        <div class="col-12 col-md-${{col}}">
-            <div class="card card-custom" ${{style}}>
-                <h6>${{titulo}}</h6>
-                <h4>${{valor}}</h4>
-            </div>
-        </div>`;
-    }}
-
-    document.getElementById("rowCards").innerHTML = "";
-    document.getElementById("rowMensal").style.display = (mes==="Todos") ? "block" : "none";
-
-    // Filtrar tabelas pelo mês
-    let t1 = mes==="Todos" ? tabela1 : tabela1.filter(d=>d.Mês===mes);
-    let t2 = mes==="Todos" ? tabela2 : tabela2.filter(d=>d.Mês===mes);
-    let t3 = mes==="Todos" ? tabela3 : tabela3.filter(d=>d.Mês===mes);
-    let t4 = mes==="Todos" ? tabela4 : tabela4.filter(d=>d.Mês===mes);
-
-    // Descontos voluntários: todos os empréstimos + outros voluntários explícitos
-    const outrosVoluntarios = [
-        "02. FUNPRESP",
-        "Descontos Joanildo - descontos voluntários"
-    ];
-
-    let t2Voluntario = t2.filter(d => d.Tipo.includes("EMPRÉSTIMO") || outrosVoluntarios.includes(d.Tipo));
-
-    // Compulsórios: tudo que não é voluntário
-    let t2Compulsorio = t2.filter(d => !(d.Tipo.includes("EMPRÉSTIMO") || outrosVoluntarios.includes(d.Tipo)));
-
-    let totalT1 = t1.reduce((a,b)=>a+Number(b.Valor),0);
-    let totalT2Comp = t2Compulsorio.reduce((a,b)=>a+Number(b.Valor),0);
-    let totalT2Vol = t2Voluntario.reduce((a,b)=>a+Number(b.Valor),0);
-    let liquidoJoanildo = totalT1 - totalT2Comp - totalT2Vol;
-
-    let totalT3 = t3.reduce((a,b)=>a+Number(b.Valor),0);
-    let totalT4 = t4.reduce((a,b)=>a+Number(b.Valor),0);
-    let liquidoKeila = totalT3 - totalT4;
-    let liquidoTotal = liquidoJoanildo + liquidoKeila;
-    let saldoGeral = liquidoTotal - total;
-    let proventosBrutosTotal = totalT1 + totalT3;
-    let totalDescontos = totalT2Comp + totalT2Vol + totalT4;
-
-    let corSaldo = saldoGeral >= 0 ? "#198754" : "#dc3545";
-
-    const coresCards = ["#00008B","#ffc107","#0dcaf0","#6c757d","#ffc107","#ff69b4","#1565C0","#FF7F50","#A52A2A"];
-
-    // Quebra de linha
-    rowCards.innerHTML += `<div class="col-12"><hr></div>`;
-
-    // ==========================
-    // CARDS JOANILDO
-    // ==========================
-    card(3,"Proventos Joanildo",moeda(totalT1),coresCards[0]);
-    card(3,"Descontos Compulsórios",moeda(totalT2Comp),coresCards[1]);
-    card(3,"Descontos Voluntários",moeda(totalT2Vol),coresCards[8]);
-    card(3,"Proventos Líquidos Joanildo",moeda(liquidoJoanildo),coresCards[2]);
-
-    
-
-    // ==========================
-    // CARDS KEILA
-    // ==========================
-    card(4,"Proventos Keila",moeda(totalT3),coresCards[0]);
-    card(4,"Descontos Keila",moeda(totalT4),coresCards[4]);
-    card(4,"Proventos Líquidos Keila",moeda(liquidoKeila),coresCards[5]);
-
-    rowCards.innerHTML += `<div class="col-12"><hr></div>`;
-
-    // ==========================
-    // TOTAIS
-    // ==========================
-    card(2,"Proventos Brutos (Total)",moeda(proventosBrutosTotal),coresCards[0]);
-    card(2,"Total de Descontos",moeda(totalDescontos),coresCards[1]);
-    card(2,"Proventos Líquidos Total",moeda(liquidoTotal),coresCards[6]);
-    card(2,"Gasto Total",moeda(total),coresCards[7]);
-    card(2,"Saldo Geral",moeda(saldoGeral),corSaldo);
-
-    Plotly.newPlot("grafico_categoria",[{{
-        labels:Object.keys(cat),
-        values:Object.values(cat),
-        type:'pie',
-        direction: 'clockwise'    
-    }}],{{margin:{{t:20,l:20,r:20,b:20}}}},{{responsive:true}});
-
-    if(mes==="Todos"){{
-        Plotly.newPlot("grafico_mensal",
-        [{{x:mesesOrdenados,y:valoresOrdenados,type:'bar',text: valoresOrdenados.map(v => moeda(v)),textposition:'outside'}}],
-        {{title:"Gastos Mensais",margin:{{t:50,l:40,r:20,b:80}},xaxis:{{tickangle:-45}}}},
-        {{responsive:true}});
-    }}
-
-    function montarTabela(id,data){{
-        if(!data.length) return;
-        let colunasCentralizadas = ["Data da compra","Data de pagamento","Valor","Parcela","T. Parcelas"];
-        let html="<thead><tr>";
-        Object.keys(data[0]).forEach(c=>{{
-            if(c!=="Mês"){{
-                html += colunasCentralizadas.includes(c)?'<th class="text-center">'+c+'</th>' : "<th>"+c+"</th>";
-            }}
-        }});
-        html+="</tr></thead><tbody>";
-        data.forEach(r=>{{
-            html+="<tr>";
-            Object.keys(r).forEach(c=>{{
-                if(c!=="Mês"){{
-                    let v = r[c]===null?"":(c==="Valor"?moeda(r[c]):r[c]);
-                    html += colunasCentralizadas.includes(c)?'<td class="text-center">'+v+'</td>' : "<td>"+v+"</td>";
-                }}
-            }});
-            html+="</tr>";
-        }});
-        html+="</tbody>";
-        document.getElementById(id).innerHTML=html;
-    }}
-
-    montarTabela("tabela_transacoes",dados);
-
-    let catArray=Object.keys(cat).map(k=>({{"Categoria":k,"Valor":cat[k]}})).sort((a,b)=>b.Valor-a.Valor);
-    montarTabela("tabela_categoria",catArray);
-
-    let pagArray=Object.keys(pag).map(k=>({{"Forma de pagamento":k,"Valor":pag[k]}})).sort((a,b)=>b.Valor-a.Valor);
-    montarTabela("tabela_pagamento",pagArray);
+    Plotly.newPlot("conteudo",
+    [{{labels:Object.keys(cat),values:Object.values(cat),type:'pie'}}],
+    {{margin:{{t:30}}}});
 }}
 
 atualizar();
@@ -381,4 +148,4 @@ atualizar();
 with open("index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-print("index.html gerado com sucesso!")
+print("index.html atualizado com sucesso!")
