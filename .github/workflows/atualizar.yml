@@ -32,8 +32,7 @@ jobs:
 
       # 5️⃣ Executar script Python
       - name: Executar script gerar_dashboard.py
-        run: |
-          python gerar_dashboard.py
+        run: python gerar_dashboard.py
 
       # 6️⃣ Commit automático do dashboard (apenas se houver alterações)
       - name: Commit automático do dashboard
@@ -43,9 +42,11 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add index.html
+          # Commit e push apenas se houver alterações
           if ! git diff --cached --quiet; then
             git commit -m "Atualização automática do dashboard"
             git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:main
             echo "✅ Dashboard atualizado e push realizado!"
           else
             echo "ℹ️ Nenhuma alteração para commitar."
+          fi
