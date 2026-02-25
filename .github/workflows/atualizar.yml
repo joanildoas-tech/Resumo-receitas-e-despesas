@@ -1,8 +1,9 @@
 name: Atualizar Dashboard Automático
 
 on:
+  
   schedule:
-    - cron: '0 */6 * * *'  # Atualiza a cada 6 horas
+    - cron: '25 22 * * *'  # Atualiza às 00h, 06h, 12h e 18h BRT
   workflow_dispatch:
 
 jobs:
