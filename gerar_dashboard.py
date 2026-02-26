@@ -1,4 +1,5 @@
 import pandas as pd
+import json
 
 # ==========================
 # Configurações
@@ -10,21 +11,39 @@ url = "https://docs.google.com/spreadsheets/d/1JTq0hJwFfMZY5mDsFy0DuEOcOgXSK_b2W
 
 # Ler planilha principal
 df = pd.read_csv(url)
-df['Valor'] = df['Valor'].replace({'R\$': '', '\.': ''}, regex=True).replace({',': '.'}, regex=True).astype(float)
+
+# Limpeza de valores
+df['Valor'] = (
+    df['Valor']
+    .replace({'R\$': '', '\.': ''}, regex=True)
+    .replace({',': '.'}, regex=True)
+    .astype(float)
+)
+
+# Conversão de datas
 df['Data da compra'] = pd.to_datetime(df['Data da compra'], dayfirst=True)
 df['Data de pagamento'] = pd.to_datetime(df['Data de pagamento'], dayfirst=True)
+
+# Filtrar pelo ano
 df = df[df['Data de pagamento'].dt.year == ANO]
+
+# Criar coluna Mês
 df['Mês'] = df['Data de pagamento'].dt.strftime('%m/%Y')
 
+# Preencher colunas de parcelas se existirem
 for col in ['Parcela', 'T. Parcelas']:
     if col in df.columns:
         df[col] = df[col].fillna('')
 
+# Lista de meses para o dropdown
 meses = sorted(df['Mês'].unique(), key=lambda x: pd.to_datetime(x, format='%m/%Y'))
 mes_padrao = meses[-1] if meses else ""
 meses = ['Todos'] + meses
 
-df_json = df.to_json(orient="records")
+# ==========================
+# Transformar df em JSON seguro para JS
+# ==========================
+df_json = json.dumps(df.to_dict(orient="records"), ensure_ascii=False)
 
 # ==========================
 # HTML
@@ -68,6 +87,7 @@ body {{ background-color: #f8f9fa; }}
 </div>
 
 <script>
+// JSON seguro vindo do Python
 let df = {df_json};
 
 function moeda(v){{
@@ -161,4 +181,4 @@ atualizar();
 with open("index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-print("Dashboard bonito atualizado com sucesso!")
+print("Dashboard atualizado com sucesso!")
