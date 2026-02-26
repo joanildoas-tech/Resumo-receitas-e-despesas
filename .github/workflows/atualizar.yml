@@ -1,7 +1,10 @@
 name: Atualizar Dashboard Automático
 
-on:
-  workflow_dispatch:  # permite teste manual imediato
+on:    
+  schedule:
+    # Agendamentos automáticos
+    - cron: '00 11 * * *'  # 08:00 BRT
+    - cron: '0 21 * * *'   # 18:00 BRT
 
 jobs:
   build:
