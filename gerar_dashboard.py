@@ -21,8 +21,10 @@ def limpar_tabela(tabela):
     tabela['Valor'] = (
         tabela['Valor']
         .astype(str)
-        .replace({'R\$': '', '\.': ''}, regex=True)
-        .replace({',': '.'}, regex=True)
+        .str.replace('R$', '', regex=False)
+        .str.replace('.', '', regex=False)
+        .str.replace(',', '.', regex=False)
+        .str.replace(' ', '', regex=False)   # REMOVE ESPAÇOS
         .astype(float)
     )
     tabela['Data'] = pd.to_datetime(tabela['Data'], dayfirst=True)
@@ -55,8 +57,11 @@ if 'Ano' in df.columns:
 
 df['Valor'] = (
     df['Valor']
-    .replace({'R\$': '', '\.': ''}, regex=True)
-    .replace({',': '.'}, regex=True)
+    .astype(str)
+    .str.replace('R$', '', regex=False)
+    .str.replace('.', '', regex=False)
+    .str.replace(',', '.', regex=False)
+    .str.replace(' ', '', regex=False)
     .astype(float)
 )
 
