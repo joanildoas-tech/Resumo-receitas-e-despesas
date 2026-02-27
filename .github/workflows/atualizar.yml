@@ -1,10 +1,6 @@
 name: Atualizar Dashboard Automático
 
 on:    
-  schedule:
-    # Agendamentos automáticos
-    - cron: '0 11 * * *'  # 08:00 BRT
-    - cron: '0 21 * * *'   # 18:00 BRT
 
   workflow_dispatch:
 
